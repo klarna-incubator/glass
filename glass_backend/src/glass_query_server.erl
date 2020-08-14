@@ -73,18 +73,8 @@ run_search(Workspace, Query, Node, Id) ->
 publish(State, Form, Results) ->
   lists:foreach(fun(Result) -> publish_result(State, Form, Result) end, Results).
 
-publish_result(State, {EntityId, Form, Meta}, {_Env, Match}) ->
+publish_result(State, Form, Result) ->
   _Node = State#search_state.node,
-  _Id = State#search_state.id,
-  _Workspace = State#search_state.workspace,
-  show({EntityId, Form, Meta}, Match).
-  % rpc:call(Node, glass_report, on_result, [Workspace, Id, Form, Result]).
-
-show({{function, {Name, Arity}}, Form, Meta}, Match) ->
-  FormLine = glass_ast:get_line(Form),
-  ErlangAst = glass_ast:glass_to_node(Match),
-  Line = glass_ast:get_line(Match),
-  Code = erl_prettypr:format(erl_syntax:form_list([ErlangAst])),
-  Filename = proplists:get_value(glass_filename, Meta),
-  io:format("%% in ~p/~p at ~s:~p~n~p| ~s~n~n",
-            [Name, Arity, Filename, FormLine, Line, Code]).
+  Id = State#search_state.id,
+  Workspace = State#search_state.workspace,
+  glass_report:on_result(Workspace, Id, Form, Result).
