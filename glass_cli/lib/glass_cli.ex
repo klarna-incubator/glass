@@ -1,18 +1,31 @@
 defmodule GlassCLI do
   @moduledoc """
-  Documentation for `GlassCLI`.
+    Supervisor and interface module for glass_cli
   """
 
-  @doc """
-  Hello world.
+  # supervisor
 
-  ## Examples
+  use Supervisor
+  alias GlassCLI.Parser
+  alias GlassCLI.Client
 
-      iex> GlassCLI.hello()
-      :world
-
-  """
-  def hello do
-    :world
+  def start(_type, _args) do
+    Supervisor.start_link(__MODULE__, [], name: __MODULE__)
   end
+
+  def init(_) do
+    children = [
+      {ClassCLI.Client, []}
+    ]
+    Supervisor.init(children, strategy: :one_for_one)
+  end
+
+  # interfaces
+
+  @spec search(query :: String.t()) :: :ok | {:error, error :: atom()}
+  def search(query) do
+    case Parser.parse(query) do
+      {:ok, parsed} -> Glient.search(query)
+      {:error, error} -> error
+    end
 end
