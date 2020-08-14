@@ -11,14 +11,15 @@ Erlang. You can think of it as "grep, if grep could understand Erlang code".
 
 ## Usage example
 
-```shell
-$ glass search 'log(_, ?re(".*message.*"), [_])'
+```erlang
+> glass:index(glass, "/path/to/glass").
+> glass:search(glass, "maps:without([position], _)").
 
-% some_app/some_module.erl at line 32
-29| update(...) ->
-30|  ...
-32|  log(sys, "Stored message id=~p", [msg_id(Msg)]),
-33|  ...
+%% in glass_to_query/1 at ./_build/default/lib/glass_backend/ebin/glass_query.beam:25
+30| maps:without([position], Attrs)
+
+%% in minimal_attributes/1 at ./_build/default/lib/glass_backend/ebin/glass_query.beam:90
+91| maps:without([position], Map)
 ```
 
 _For more examples and usage, please refer to the [Docs](TODO)._
@@ -26,11 +27,6 @@ _For more examples and usage, please refer to the [Docs](TODO)._
 ## Development setup
 
 TODO: Describe how to install all development dependencies and how to run an automated test-suite of some kind. Potentially do this for multiple platforms.
-
-```sh
-make install
-npm test
-```
 
 ## How to contribute
 
