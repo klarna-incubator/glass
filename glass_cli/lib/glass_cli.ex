@@ -17,15 +17,17 @@ defmodule GlassCLI do
     children = [
       {ClassCLI.Client, []}
     ]
+
     Supervisor.init(children, strategy: :one_for_one)
   end
 
   # interfaces
 
-  @spec search(query :: String.t()) :: :ok | {:error, error :: atom()}
+  @spec search(query :: String.t()) :: [Client.result()] | {:error, any()}
   def search(query) do
     case Parser.parse(query) do
-      {:ok, parsed} -> Glient.search(query)
+      {:ok, parsed} -> Client.search(query)
       {:error, error} -> error
     end
+  end
 end
