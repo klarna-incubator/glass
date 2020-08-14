@@ -179,4 +179,6 @@ show({{function, {Name, Arity}}, Form, Meta}, Match) ->
   ErlangAst = glass_ast:glass_to_node(Match),
   Line = glass_ast:get_line(Match),
   Code = erl_prettypr:format(erl_syntax:form_list([ErlangAst])),
-  io:format("%% in ~p/~p at line ~p~n~p| ~s~n~n", [Name, Arity, FormLine, Line, Code]).
+  Filename = proplists:get_value(glass_filename, Meta),
+  io:format("%% in ~p/~p at ~s:~p~n~p| ~s~n~n",
+            [Name, Arity, Filename, FormLine, Line, Code]).
