@@ -5,6 +5,7 @@
 -export([
   ast_to_glass/1,
   node_to_glass/1,
+  glass_to_node/1,
   map/2,
   search/2
 ]).
@@ -89,27 +90,6 @@ node_to_glass({string, Line, Value}) ->
   };
 
 %% Patterns
-node_to_glass({bin, Line, Elements}) ->
-  #glass_node{
-    type = bin,
-    attributes = #{
-      position => {Line, 0}
-    },
-    children = lists:map(fun node_to_glass/1, Elements)
-  };
-
-node_to_glass({bin_element, Line, Pattern, Size, Tls}) ->
-  #glass_node{
-    type = bin_element,
-    attributes = #{
-      position => {Line, 0},
-      pattern => Pattern,
-      size => Size,
-      tls => Tls
-    },
-    children = []
-  };
-
 node_to_glass({match, Line, Left, Right}) ->
   #glass_node{
     type = match,
@@ -302,6 +282,106 @@ node_to_glass(Node) ->
     children = []
   }.
 
+
+%%%_* Glass -> Erlang =================================================
+glass_to_node(Nodes) when is_list(Nodes) ->
+  lists:map(fun glass_to_node/1, Nodes);
+glass_to_node(Node) ->
+  case Node#glass_node.type of
+    root ->
+      get_children(Node);
+    %% Forms
+    function ->
+      {function, get_line(Node), 
+                 get_attr(name, Node), 
+                 get_attr(arity, Node),
+                 glass_to_node(get_children(Node))};
+    clause ->
+      [Patterns, Guards, Body] = get_children(Node),
+      {clause, get_line(Node),
+               glass_to_node(Patterns),
+               glass_to_node(Guards),
+               glass_to_node(Body)};
+    %% Literals
+    atom ->
+      {atom, get_line(Node), get_attr(value, Node)};
+    char ->
+      {char, get_line(Node), get_attr(value, Node)};
+    float ->
+      {float, get_line(Node), get_attr(value, Node)};
+    integer ->
+      {integer, get_line(Node), get_attr(value, Node)};
+    string ->
+      {string, get_line(Node), get_attr(value, Node)};
+    %% Patterns
+    match ->
+      [Left, Right] = get_children(Node),
+      {match, get_line(Node), glass_to_node(Left), glass_to_node(Right)};
+    cons ->
+      [Head, Tail] = get_children(Node),
+      {cons, get_line(Node), glass_to_node(Head), glass_to_node(Tail)};
+    nil ->
+      {nil, get_line(Node)};
+    binary_op ->
+      [Left, Right] = get_children(Node),
+      {op, get_line(Node), get_attr(operation, Node), glass_to_node(Left), glass_to_node(Right)};
+    unary_op ->
+      [Arg] = get_children(Node),
+      {op, get_line(Node), get_attr(operation, Node), glass_to_node(Arg)};
+    record_index ->
+      [Field] = get_children(Node),
+      {record_index, get_line(Node), get_attr(record, Node), glass_to_node(Field)};
+    record ->
+      {record, get_line(Node), get_attr(record, Node), glass_to_node(get_children(Node))};
+    record_field ->
+      [Key, Value] = get_children(Node),
+      {record_field, get_line(Node), glass_to_node(Key), glass_to_node(Value)};
+    tuple ->
+      {tuple, get_line(Node), glass_to_node(get_children(Node))};
+    var ->
+      {var, get_line(Node), get_attr(name, Node)};
+    %% Expressions
+    block ->
+      {block, get_line(Node), glass_to_node(get_children(Node))};
+    'case' ->
+      [Expr, Cases] = get_children(Node),
+      {'case', get_line(Node), glass_to_node(Expr), glass_to_node(Cases)};
+    'catch' ->
+      [Expr] = get_children(Node),
+      {'catch', get_line(Node), glass_to_node(Expr)};
+    fun_named ->
+      [Name, Arity] = get_children(Node),
+      {'fun', get_line(Node), {function, glass_to_node(Name), glass_to_node(Arity)}};
+    fun_named_external ->
+      [Module, Name, Arity] = get_children(Node),
+      {'fun', get_line(Node), {function, glass_to_node(Module), glass_to_node(Name), glass_to_node(Arity)}};
+    'fun' ->
+      {'fun', get_line(Node), {clauses, glass_to_node(get_children(Node))}};
+    named_fun ->
+      {named_fun, get_line(Node), get_attr(name, Node), glass_to_node(get_children(Node))};
+    call ->
+      [Callee, Args] = get_children(Node),
+      {call, get_line(Node), glass_to_node(Callee), glass_to_node(Args)};
+    remote ->
+      [Module, Name] = get_children(Node),
+      {remote, get_line(Node), glass_to_node(Module), glass_to_node(Name)};
+    node_list ->
+      glass_to_node(get_children(Node));
+    unknown_node ->
+      {atom, 0, unknown_node}
+  end.
+
+get_line(Node) ->
+  {Line, _} = get_attr(position, Node),
+  Line.
+
+get_attr(Attr, Node) ->
+  maps:get(Attr, Node#glass_node.attributes).
+
+get_children(Node) ->
+  Node#glass_node.children.
+
+%%%_* Tree transformations ============================================
 map(Fun, Tree0) ->
   Tree1 = Fun(Tree0),
   Children = Tree1#glass_node.children,
