@@ -30,7 +30,7 @@ defmodule GlassCLI.Client do
     GenServer.start_link(__MODULE__, [:ok], name: __MODULE__)
   end
 
-  def init(:ok), do: {:ok, init_state()}
+  def init(_), do: {:ok, init_state()}
 
   # interface
 
@@ -81,11 +81,17 @@ defmodule GlassCLI.Client do
     {:reply, {:error, :search_not_finished}, state}
   end
 
-  def handle_call({:search, query, pid}, state) do
+  def handle_call({:search, query, pid}, _from, state) do
     rpc_timeout = Application.get_env(:glass_cli, :rpc_timeout)
     backend_node = Application.get_env(:glass_cli, :backend_node)
-
-    case :rpc.call(backend_node, :"DummyServer.glass_backend", :search, [query], rpc_timeout) do
+    # TODO: use the correct mod/fun here
+    case :rpc.call(
+           backend_node,
+           :"Elixir.DummyServer",
+           :glass_backend,
+           [Node.self(), query],
+           rpc_timeout
+         ) do
       {:ok, uuid} ->
         new_state = %__MODULE__{
           query: query,
@@ -112,7 +118,7 @@ defmodule GlassCLI.Client do
   def handle_cast({:result, _}, state), do: {:noreply, state}
 
   def handle_cast({:finish, uuid}, state = %{uuid: uuid}) do
-    state.receiver_pid(!{:results, state.results})
+    send(state.receiver_pid, {:results, state.results})
     {:noreply, %{state | finished: true}}
   end
 

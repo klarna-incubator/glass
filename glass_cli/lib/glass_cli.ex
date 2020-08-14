@@ -15,7 +15,7 @@ defmodule GlassCLI do
 
   def init(_) do
     children = [
-      {ClassCLI.Client, []}
+      {Client, []}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
@@ -26,8 +26,15 @@ defmodule GlassCLI do
   @spec search(query :: String.t()) :: [Client.result()] | {:error, any()}
   def search(query) do
     case Parser.parse(query) do
-      {:ok, parsed} -> Client.search(query)
+      # TODO: pretty print
+      {:ok, parsed} -> Client.search(parsed)
       {:error, error} -> error
     end
   end
+
+  @spec result(any(), any()) :: :ok
+  def result(uuid, result), do: Client.result(uuid, result)
+
+  @spec finish(any()) :: :ok
+  def finish(uuid), do: Client.finish(uuid)
 end
