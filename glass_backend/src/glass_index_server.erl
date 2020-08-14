@@ -5,8 +5,6 @@
 -include_lib("stdlib/include/ms_transform.hrl").
 -include("glass_index.hrl").
 
--compile(export_all).
-
 -define(ENTITY_INDEX, glass_index_entities).
 -define(ENTITY_META, glass_index_metadata).
 
