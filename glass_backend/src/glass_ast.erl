@@ -36,7 +36,7 @@ node_to_glass({clause, Line, Patterns, Guards, Body}) ->
   #glass_node{
     type = clause,
     attributes = #{
-      position => Line
+      position => {Line, 0}
     },
     children = [node_to_glass(Patterns), node_to_glass(Guards), node_to_glass(Body)]
   };
@@ -375,11 +375,14 @@ glass_to_node(Node) ->
   end.
 
 get_line(Node) ->
-  {Line, _} = get_attr(position, Node),
+  {Line, _} = get_attr(position, Node, {-1, -1}),
   Line.
 
 get_attr(Attr, Node) ->
   maps:get(Attr, Node#glass_node.attributes).
+
+get_attr(Attr, Node, Default) ->
+  maps:get(Attr, Node#glass_node.attributes, Default).
 
 get_children(Node) ->
   Node#glass_node.children.
