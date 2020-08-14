@@ -76,25 +76,25 @@ handle_cast(Msg, State) ->
 
 
 run_search(Workspace, Query, Node, Id) ->
-  Forms = lists:map(fun entity_to_form/1, glass_index_server:get_entities(Workspace, function)),
+  Entities = glass_index_server:get_entities(Workspace, function),
   State = #search_state{
     workspace = Workspace,
     node = Node,
     id = Id
   },
-  lists:foreach(fun(Form) -> publish(State, Form, match_form(Query, Form)) end, Forms).
+  lists:foreach(fun({EntityId, Form, Meta}) -> 
+                  publish(State, {EntityId, Form, Meta}, match_form(Query, Form))
+                end, Entities).
 
 publish(State, Form, Results) ->
   lists:foreach(fun(Result) -> publish_result(State, Form, Result) end, Results).
 
-publish_result(State, Form, Result) ->
+publish_result(State, {EntityId, Form, Meta}, {_Env, Match}) ->
   _Node = State#search_state.node,
-  Id = State#search_state.id,
-  Workspace = State#search_state.workspace,
-  io:format("[workspace: ~p id: ~p]~nform: ~p~nresult: ~p", [Workspace, Id, Form, Result]).
+  _Id = State#search_state.id,
+  _Workspace = State#search_state.workspace,
+  show({EntityId, Form, Meta}, Match).
   % rpc:call(Node, glass_report, on_result, [Workspace, Id, Form, Result]).
-
-entity_to_form({_, Form, _}) -> Form.
 
 parse_query(QueryString) ->
   {ok, Tokens} = glass_parser:tokenise(QueryString ++ "."),
@@ -173,3 +173,10 @@ attributes_match(Map1, Map2) ->
 
 minimal_attributes(Map) ->
   maps:without([position], Map).
+
+show({{function, {Name, Arity}}, Form, Meta}, Match) ->
+  FormLine = glass_ast:get_line(Form),
+  ErlangAst = glass_ast:glass_to_node(Match),
+  Line = glass_ast:get_line(Match),
+  Code = erl_prettypr:format(erl_syntax:form_list([ErlangAst])),
+  io:format("%% in ~p/~p at line ~p~n~p| ~s~n~n", [Name, Arity, FormLine, Line, Code]).

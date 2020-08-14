@@ -7,7 +7,10 @@
   node_to_glass/1,
   glass_to_node/1,
   map/2,
-  search/2
+  search/2,
+  get_children/1,
+  get_line/1,
+  get_attr/2
 ]).
 
 ast_to_glass(Ast) ->
