@@ -24,6 +24,57 @@ Erlang. You can think of it as "grep, if grep could understand Erlang code".
 
 _For more examples and usage, please refer to the [Docs](TODO)._
 
+## Querying language
+
+Glass uses a querying language based on pattern unification (and, in the future,
+possibly with more logical operators). In practice, this means that in order
+to query a codebase, you provide a piece of Erlang code that has variables where
+expressions can go.
+
+The query:
+
+```erlang
+maps:without([position], Arg)
+```
+
+Will match any `maps:without` call whose first argument is the exact list
+`[position]`, and the second argument is any Erlang expression, which will be
+bound to `Arg` within this query.
+
+Variables are unified, which means that, just like in regular Erlang pattern
+matching, you can use this to query pieces of code that have the same expression
+in different places. A query for the identity function is:
+
+```erlang
+fun(A) -> A end
+```
+
+A query for taking the first element of a tuple would be:
+
+```erlang
+fun({A, _}) -> A end
+```
+
+This provides a simple foundation for querying code that is at the same time
+very powerful. Particularly when extended for refactoring. A query like (syntax
+not final):
+
+```erlang
+s/log(File, Format, [error])/log(error_log, Format ++ " file: ~p", [error, File])/
+```
+
+Could transform a piece of code like:
+
+```erlang
+log(debug, "Failed, reason=~p", [error])
+```
+
+Into:
+
+```erlang
+log(error_log, "Failed, reason=~p" ++ "file: ~p", [error, debug])
+```
+
 ## Development setup
 
 Glass requires both [OTP21+](https://www.erlang.org/downloads) and
