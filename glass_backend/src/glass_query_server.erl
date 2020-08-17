@@ -59,6 +59,7 @@ handle_cast(Msg, State) ->
 
 
 run_search(Workspace, Query, Node, Id) ->
+  io:format("*** Searching ~p~n", [Workspace]),
   Entities = glass_index_server:get_entities(Workspace, function),
   State = #search_state{
     workspace = Workspace,
@@ -68,7 +69,8 @@ run_search(Workspace, Query, Node, Id) ->
   lists:foreach(fun({EntityId, Form, Meta}) ->
                   Results = glass_query:unify(Query, Form),
                   publish(State, {EntityId, Form, Meta}, Results)
-                end, Entities).
+                end, Entities),
+  io:format("*** Search completed.~n").
 
 publish(State, Form, Results) ->
   lists:foreach(fun(Result) -> publish_result(State, Form, Result) end, Results).
