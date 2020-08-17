@@ -81,8 +81,10 @@ form_matches(
   #glass_node{type = Type, attributes = Attrs1, children = Children1},
   #glass_node{type = Type, attributes = Attrs2, children = Children2}
 ) ->
-  attributes_match(Attrs1, Attrs2) 
-    andalso lists:all(fun({A, B}) -> form_matches(A, B) end, lists:zip(Children1, Children2)).
+  attributes_match(Attrs1, Attrs2)
+    andalso length(Children1) =:= length(Children2)
+    andalso lists:all(fun({A, B}) -> form_matches(A, B) end, lists:zip(Children1, Children2));
+form_matches(_, _) -> false.
 
 attributes_match(Map1, Map2) ->
   minimal_attributes(Map1) =:= minimal_attributes(Map2).
