@@ -51,37 +51,25 @@ handle_cast(Msg, State) ->
   {noreply, State}.
 
 
-find_entities(Workspace, Type) ->
+find_entities(Workspace, _Type) ->
   Spec = ets:fun2ms(
-          fun(
-            #glass_index_entry{
-                path = {EntryWorkspace, _, _, {EntryType, _}},
-                id = Id,
-                form = Form
-            }
-          ) when EntryWorkspace =:= Workspace andalso EntryType =:= Type ->
-            {Id, Form}
-          end
-         ),
-  Entities = ets:select(?ENTITY_INDEX, Spec),
-  lists:map(fun({Id, Form}) -> {Id, Form, find_metadata(Id)} end, Entities).
-
-find_metadata(Id) ->
-  Spec = ets:fun2ms(
-           fun(#glass_index_metadata{id = MetaId, field = Key, value = Value})
-           when MetaId =:= Id ->
-             {Key, Value}
-           end
-         ),
-  ets:select(?ENTITY_META, Spec).
+          fun({EntityWorkspace, Entities}) when EntityWorkspace =:= Workspace ->
+            Entities
+          end),
+  [Entities] = ets:select(?ENTITY_INDEX, Spec),
+  Entities.
 
 index_workspace(Workspace, Root) ->
+  io:format("*** Indexing ~p~n", [Workspace]),
   Beams = beams_in_directory(Root),
-  lists:foreach(fun(Beam) -> index_beam(Workspace, Beam) end, Beams).
+  Entities = lists:flatmap(fun(Beam) -> index_beam(Workspace, Beam) end, Beams),
+  ets:insert(?ENTITY_INDEX, {Workspace, Entities}),
+  io:format("*** Finished indexing ~p~n", [Workspace]).
 
 index_beam(Workspace, Beam) ->
+  io:format("*** Indexing ~p in ~p~n", [Beam, Workspace]),
   {App, Module, Forms} = get_beam_forms(Beam),
-  lists:foreach(fun(Form) ->
+  lists:flatmap(fun(Form) ->
                   index_beam_form(Workspace, {App, Module, Beam}, Form)
                 end,
                 Forms).
@@ -89,27 +77,17 @@ index_beam(Workspace, Beam) ->
 index_beam_form(Workspace, {App, Module, Beam}, Form) ->
   case form_id(Form) of
     none ->
-      ok;
+      [];
     Id ->
       GlassNode = glass_ast:node_to_glass(Form),
-      ets:insert(?ENTITY_INDEX, #glass_index_entry{
-        path = {Workspace, App, Module, Id},
-        id = Id,
-        form = GlassNode
-      }),
-      ets:insert(?ENTITY_META, [
-        #glass_index_metadata{
-          id = Id,
-          field = ?glass_position,
-          value = form_position(Form)
-        },
-        #glass_index_metadata{
-          id = Id,
-          field = ?glass_filename,
-          value = Beam
-        }
-      ]),
-      ok
+      [{
+        {Workspace, App, Module, Id},
+        GlassNode,
+        [
+          {?glass_position, form_position(Form)},
+          {?glass_filename, Beam}
+        ]
+      }]
   end.
 
 form_id({function, _, Name, Arity, _}) -> {function, {Name, Arity}};
@@ -147,5 +125,4 @@ ends_with(Suffix, Filename) ->
   string:prefix(ReverseFilename, ReverseSuffix) =/= nomatch.
 
 new_index() ->
-  ets:new(?ENTITY_INDEX, [ordered_set, named_table, {keypos, #glass_index_entry.path}, public]),
-  ets:new(?ENTITY_META, [bag, named_table, {keypos, #glass_index_metadata.id}, public]).
+  ets:new(?ENTITY_INDEX, [ordered_set, named_table, public]).

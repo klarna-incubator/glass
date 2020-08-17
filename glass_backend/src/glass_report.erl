@@ -7,7 +7,7 @@
 on_result(_Workspace, _Id, Form, {_Env, Match}) ->
   show(Form, Match).
 
-show({{function, {Name, Arity}}, Form, Meta}, Match) ->
+show({{_, _, _, {function, {Name, Arity}}}, Form, Meta}, Match) ->
   FormLine = glass_ast:get_line(Form),
   ErlangAst = case glass_ast:glass_to_node(Match) of
                 Nodes when is_list(Nodes) -> Nodes;
