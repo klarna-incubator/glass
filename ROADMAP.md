@@ -14,3 +14,5 @@ For now the focus is on querying Erlang codebases.
   - [ ] Support querying macros;
   - [ ] Support multi-entity queries carrying unification environments across them;
   - [ ] Support showing bound variables in the query instead of full matches;
+  - [ ] Add more relational logic and other operators to the query language
+    (e.g.: `unordered(<query>)` and `any(<query>)`);

@@ -26,7 +26,17 @@ _For more examples and usage, please refer to the [Docs](TODO)._
 
 ## Development setup
 
-TODO: Describe how to install all development dependencies and how to run an automated test-suite of some kind. Potentially do this for multiple platforms.
+Glass requires both [OTP21+](https://www.erlang.org/downloads) and
+[rebar3](https://www.rebar3.org/). `rebar3 shell` from the root will drop
+you into an Erlang shell for Glass.
+
+## Roadmap
+
+The current focus is on making the query language feature-complete. And we
+have plans to work on optimisation, refactoring, and more advanced (incremental)
+static analysis in the future.
+
+See our [roadmap](ROADMAP.md) document for more details.
 
 ## How to contribute
 
