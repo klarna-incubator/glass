@@ -10,7 +10,7 @@
 
 -export([ start_link/0
         , get_entities/2
-        , index/2
+        , index/3
         ]).
 
 -export([ init/1
@@ -26,8 +26,8 @@ start_link() ->
 get_entities(Workspace, Type) ->
   gen_server:call(?MODULE, {get_entities, Workspace, Type}).
 
-index(Workspace, Path) ->
-  gen_server:cast(?MODULE, {index, Workspace, Path}).
+index(Workspace, Path, Node) ->
+  gen_server:cast(?MODULE, {index, Workspace, Path, Node}).
 
 
 init(_Args) ->
@@ -42,8 +42,8 @@ handle_call(Msg, From, State) ->
   ?LOG_ERROR("Received unknown call message ~p from ~p", [Msg, From]),
   {noreply, State}.
 
-handle_cast({index, Workspace, Path}, State) ->
-  spawn(fun() -> index_workspace(Workspace, Path) end),
+handle_cast({index, Workspace, Path, Node}, State) ->
+  spawn(fun() -> index_workspace(Workspace, Path, Node) end),
   {noreply, State};
 
 handle_cast(Msg, State) ->
@@ -59,11 +59,15 @@ find_entities(Workspace, _Type) ->
   [Entities] = ets:select(?ENTITY_INDEX, Spec),
   Entities.
 
-index_workspace(Workspace, Root) ->
+index_workspace(Workspace, Root, Node) ->
   io:format("*** Indexing ~p~n", [Workspace]),
   Beams = beams_in_directory(Root),
   Entities = lists:flatmap(fun(Beam) -> index_beam(Workspace, Beam) end, Beams),
   ets:insert(?ENTITY_INDEX, {Workspace, Entities}),
+  case node() of
+    Node -> no_op;
+    _ -> rpc:call(Node, 'Elixir.GlassCLI', finish_index, [])
+  end,
   io:format("*** Finished indexing ~p~n", [Workspace]).
 
 index_beam(Workspace, Beam) ->

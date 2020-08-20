@@ -31,8 +31,7 @@ start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 search(Workspace, Query, Node) ->
-  gen_server:cast(?MODULE, {search, Workspace, Query, Node}).
-
+  gen_server:call(?MODULE, {search, Workspace, Query, Node}).
 
 init(_Args) ->
   {ok, #state{
@@ -40,21 +39,23 @@ init(_Args) ->
     processes = []
   }}.
 
-handle_call(Msg, From, State) ->
-  ?LOG_ERROR("Unknown call message ~p from ~p", [Msg, From]),
+handle_cast(Msg, State) ->
+  ?LOG_ERROR("Unknown cast message ~p", [Msg]),
   {noreply, State}.
 
-handle_cast({search, Workspace, QuerySource, Node}, State) ->
+handle_call({search, Workspace, QuerySource, Node}, _From, State) ->
   Query = glass_query:parse(QuerySource),
   Id = State#state.next_id,
   Pid = spawn(fun() -> run_search(Workspace, Query, Node, Id) end),
-  {noreply, State#state{
+  { reply
+  , {ok, Id}
+  , State#state{
     next_id = Id + 1,
     processes = [{Node, Pid, Id}]
   }};
 
-handle_cast(Msg, State) ->
-  ?LOG_ERROR("Unknown cast message ~p", [Msg]),
+handle_call(Msg, From, State) ->
+  ?LOG_ERROR("Unknown call message ~p from ~p", [Msg, From]),
   {noreply, State}.
 
 
@@ -70,13 +71,27 @@ run_search(Workspace, Query, Node, Id) ->
                   Results = glass_query:unify(Query, Form),
                   publish(State, {EntityId, Form, Meta}, Results)
                 end, Entities),
+  rpc_finish(Id, Node),
   io:format("*** Search completed.~n").
 
 publish(State, Form, Results) ->
   lists:foreach(fun(Result) -> publish_result(State, Form, Result) end, Results).
 
 publish_result(State, Form, Result) ->
-  _Node = State#search_state.node,
+  Node = State#search_state.node,
   Id = State#search_state.id,
   Workspace = State#search_state.workspace,
+  rpc_result(Id, Result, Node),
   glass_report:on_result(Workspace, Id, Form, Result).
+
+rpc_result(Id, Result, Node) ->
+  case node() of
+    Node -> no_op; % local node, do nothing
+    _ -> rpc:call(Node, 'Elixir.GlassCLI', result, [Id, Result])
+  end.
+
+rpc_finish(Id, Node) ->
+  case node() of
+    Node -> no_op;
+    _ -> rpc:call(Node, 'Elixir.GlassCLI', finish, [Id])
+  end.
