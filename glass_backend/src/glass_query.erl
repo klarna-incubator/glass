@@ -15,8 +15,14 @@
 %%%_* API =============================================================
 parse(Source) ->
   {ok, Tokens} = glass_parser:tokenise(Source ++ "."),
-  {ok, [Expr]} = glass_parser:parse_exprs(Tokens),
-  glass_to_query(glass_ast:node_to_glass(Expr)).
+  case glass_parser:parse_exprs(Tokens) of
+    {error, Error} -> {error, Error};
+    {ok, [Expr]} ->
+      glass_to_query(glass_ast:node_to_glass(Expr));
+    {ok, Form} ->
+      %% TODO parse form
+      glass_to_query(glass_ast:node_to_glass(Form))
+  end.
 
 unify(Query, Form) ->
   glass_ast:search(Form, fun(Node) -> apply_query(Query, Node) end).

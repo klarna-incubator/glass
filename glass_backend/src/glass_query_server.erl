@@ -44,15 +44,20 @@ handle_cast(Msg, State) ->
   {noreply, State}.
 
 handle_call({search, Workspace, QuerySource, Node}, _From, State) ->
-  Query = glass_query:parse(QuerySource),
-  Id = State#state.next_id,
-  Pid = spawn(fun() -> run_search(Workspace, Query, Node, Id) end),
-  { reply
-  , {ok, Id}
-  , State#state{
-    next_id = Id + 1,
-    processes = [{Node, Pid, Id}]
-  }};
+  case glass_query:parse(QuerySource) of
+    {error, Error} ->
+      {reply, {error, Error}, State};
+    Query ->
+      Query = glass_query:parse(QuerySource),
+      Id = State#state.next_id,
+      Pid = spawn(fun() -> run_search(Workspace, Query, Node, Id) end),
+      { reply
+      , {ok, Id}
+      , State#state{
+        next_id = Id + 1,
+        processes = [{Node, Pid, Id}]
+      }}
+  end;
 
 handle_call(Msg, From, State) ->
   ?LOG_ERROR("Unknown call message ~p from ~p", [Msg, From]),
@@ -81,8 +86,10 @@ publish_result(State, Form, Result) ->
   Node = State#search_state.node,
   Id = State#search_state.id,
   Workspace = State#search_state.workspace,
-  rpc_result(Id, Result, Node),
-  glass_report:on_result(Workspace, Id, Form, Result).
+  ResultStr = glass_report:pretty(Workspace, Id, Form, Result),
+  rpc_result(Id, list_to_binary(ResultStr), Node),
+  io:format(ResultStr).
+  % glass_report:on_result(Workspace, Id, Form, Result).
 
 rpc_result(Id, Result, Node) ->
   case node() of

@@ -155,4 +155,13 @@ defmodule GlassCLI.Client do
         {:reply, {:error, reason}, state}
     end
   end
+
+  defp convert_to_list(args) do
+    args |>
+      Enum.map(
+            fn
+              arg when is_bitstring(arg) -> String.to_charlist(arg)
+              arg -> arg
+            end)
+  end
 end
