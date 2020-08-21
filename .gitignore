@@ -1,2 +1,7 @@
 .vscode/
 *.beam
+erl_crash.dump
+mix.lock
+_build/
+rel/
+deps/
