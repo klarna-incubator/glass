@@ -553,9 +553,7 @@ glass_to_node(Node) ->
     node_list ->
       glass_to_node(get_children(Node));
     unknown_node ->
-      {atom, 0, unknown_node};
-    glass_special_node ->
-      get_attr(ast, Node)
+      {atom, 0, unknown_node}
   end.
 
 get_line(Node) ->
