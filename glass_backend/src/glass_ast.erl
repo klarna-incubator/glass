@@ -93,6 +93,26 @@ node_to_glass({string, Line, Value}) ->
   };
 
 %% Patterns
+node_to_glass({bin, Line, Elements}) ->
+  #glass_node{
+    type = bin,
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = lists:map(fun node_to_glass/1, Elements)
+  };
+
+node_to_glass({bin_element, Line, Pattern, Size, TypeSpecs}) ->
+  #glass_node{
+    type = bin_element,
+    attributes = #{
+      position => {Line, 0},
+      size => Size,
+      type_specifiers => TypeSpecs
+    },
+    children = [node_to_glass(Pattern)]
+  };
+
 node_to_glass({match, Line, Left, Right}) ->
   #glass_node{
     type = match,
@@ -189,6 +209,15 @@ node_to_glass({var, Line, Name}) ->
   };
 
 %% Expressions
+node_to_glass({bc, Line, Expr, Qualifiers}) ->
+  #glass_node{
+    type = bc,
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = [node_to_glass(Expr), node_to_glass(Qualifiers)]
+  };
+
 node_to_glass({block, Line, Body}) ->
   #glass_node{
     type = block,
@@ -271,6 +300,112 @@ node_to_glass({remote, Line, Module, Name}) ->
     children = [node_to_glass(Module), node_to_glass(Name)]
   };
 
+node_to_glass({'if', Line, Cases}) ->
+  #glass_node{
+    type = 'if',
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = lists:map(fun node_to_glass/1, Cases)
+  };
+
+node_to_glass({lc, Line, Expr, Qualifiers}) ->
+  #glass_node{
+    type = lc,
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = [node_to_glass(Expr), node_to_glass(Qualifiers)]
+  };
+
+node_to_glass({map, Line, Pairs}) ->
+  #glass_node{
+    type = map,
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = lists:map(fun node_to_glass/1, Pairs)
+  };
+
+node_to_glass({map, Line, Origin, Pairs}) ->
+  #glass_node{
+    type = map_update,
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = [node_to_glass(Origin), node_to_glass(Pairs)]
+  };
+
+node_to_glass({'receive', Line, Cases}) ->
+  #glass_node{
+    type = 'receive',
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = [node_to_glass(Cases)]
+  };
+
+node_to_glass({'receive', Line, Cases, After, Body}) ->
+  #glass_node{
+    type = 'receive_timeout',
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = [node_to_glass(After), node_to_glass(Body), node_to_glass(Cases)]
+  };
+
+node_to_glass({'try', Line, Body, Clauses, Catches, After}) ->
+  #glass_node{
+    type = 'try',
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = [
+      node_to_glass(Body),
+      node_to_glass(Clauses),
+      node_to_glass(Catches),
+      node_to_glass(After)
+    ]
+  };
+
+%% Qualifiers
+node_to_glass({generate, Line, Pattern, Expr}) ->
+  #glass_node{
+    type = generate,
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = [node_to_glass(Pattern), node_to_glass(Expr)]
+  };
+
+node_to_glass({b_generate, Line, Pattern, Expr}) ->
+  #glass_node{
+    type = b_generate,
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = [node_to_glass(Pattern), node_to_glass(Expr)]
+  };
+
+%% Associations
+node_to_glass({map_field_assoc, Line, Key, Value}) ->
+  #glass_node{
+    type = map_field_assoc,
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = [node_to_glass(Key), node_to_glass(Value)]
+  };
+
+node_to_glass({map_field_exact, Line, Key, Value}) ->
+  #glass_node{
+    type = map_field_exact,
+    attributes = #{
+      position => {Line, 0}
+    },
+    children = [node_to_glass(Key), node_to_glass(Value)]
+  };
+
 node_to_glass(Nodes) when is_list(Nodes) ->
   #glass_node{
     type = node_list,
@@ -317,6 +452,14 @@ glass_to_node(Node) ->
     string ->
       {string, get_line(Node), get_attr(value, Node)};
     %% Patterns
+    bin ->
+      {bin, get_line(Node), glass_to_node(get_children(Node))};
+    bin_element ->
+      [Pattern] = get_children(Node),
+      {bin_element, get_line(Node),
+                    glass_to_node(Pattern),
+                    get_attr(size, Node),
+                    get_attr(type_specifiers, Node)};
     match ->
       [Left, Right] = get_children(Node),
       {match, get_line(Node), glass_to_node(Left), glass_to_node(Right)};
@@ -344,6 +487,9 @@ glass_to_node(Node) ->
     var ->
       {var, get_line(Node), get_attr(name, Node)};
     %% Expressions
+    bc ->
+      [Expr, Qualifiers] = get_children(Node),
+      {bc, get_line(Node), glass_to_node(Expr), glass_to_node(Qualifiers)};
     block ->
       {block, get_line(Node), glass_to_node(get_children(Node))};
     'case' ->
@@ -368,6 +514,42 @@ glass_to_node(Node) ->
     remote ->
       [Module, Name] = get_children(Node),
       {remote, get_line(Node), glass_to_node(Module), glass_to_node(Name)};
+    'if' ->
+      {'if', get_line(Node), glass_to_node(get_children(Node))};
+    lc ->
+      [Expr, Qualifiers] = get_children(Node),
+      {lc, get_line(Node), glass_to_node(Expr), glass_to_node(Qualifiers)};
+    map ->
+      {map, get_line(Node), glass_to_node(get_children(Node))};
+    'receive' ->
+      {'receive', get_line(Node), glass_to_node(get_children(Node))};
+    receive_timeout ->
+      [After, Body, Cases] = get_children(Node),
+      {'receive', get_line(Node),
+                  glass_to_node(Cases),
+                  glass_to_node(After),
+                  glass_to_node(Body)};
+    'try' ->
+      [Body, Clauses, Catches, After] = get_children(Node),
+      {'try', get_line(Node),
+              glass_to_node(Body),
+              glass_to_node(Clauses),
+              glass_to_node(Catches),
+              glass_to_node(After)};
+    %% Qualifiers
+    generate ->
+      [Pattern, Expr] = get_children(Node),
+      {generate, get_line(Node), glass_to_node(Pattern), glass_to_node(Expr)};
+    b_generate ->
+      [Pattern, Expr] = get_children(Node),
+      {b_generate, get_line(Node), glass_to_node(Pattern), glass_to_node(Expr)};
+    %% Associations
+    map_field_assoc ->
+      [Key, Value] = get_children(Node),
+      {map_field_assoc, get_line(Node), glass_to_node(Key), glass_to_node(Value)};
+    map_field_exact ->
+      [Key, Value] = get_children(Node),
+      {map_field_exact, get_line(Node), glass_to_node(Key), glass_to_node(Value)};
     node_list ->
       glass_to_node(get_children(Node));
     unknown_node ->
