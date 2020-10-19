@@ -8,6 +8,7 @@
 
 Glass is a tool for semantically searching source code, currently focusing on
 Erlang. You can think of it as "grep, if grep could understand Erlang code".
+For more information, read the [technical design documents](./docs).
 
 ## Usage example
 
@@ -22,7 +23,7 @@ Erlang. You can think of it as "grep, if grep could understand Erlang code".
 91| maps:without([position], Map)
 ```
 
-_For more examples and usage, please refer to the [Docs](TODO)._
+_For more examples and usage, please refer to the [Docs](./docs)._
 
 ## Querying language
 
@@ -96,6 +97,17 @@ See our guide on [contributing](.github/CONTRIBUTING.md).
 ## Release History
 
 See our [changelog](CHANGELOG.md).
+
+## Etymology
+
+Glass (/glas/) means "ice cream" in Swedish. English has a homonym with close
+pronunciation that means "lens", in particular for the purpose of improving its
+user's eyesight. This sounded like a fun name for a project meant to improve a
+developer's understanding of their codebase by letting them "magnify" certain
+aspects and patterns that can happen in big codebases.
+
+After deciding on the name, the acronym "Generic Language and Search System" was
+backfitted.
 
 ## License
 
