@@ -32,4 +32,4 @@ These are the kind of questions that drive the vision and design of Glass.
 
 ## Glass' design
 
-  - [A Foundation for Code Queries](./querying)
+  - [A Foundation for Code Queries](./querying.md)

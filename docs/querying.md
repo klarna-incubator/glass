@@ -69,7 +69,7 @@ anywhere in the graph, rather than having them restricted to trees. A
 `{stable_id(), node_id()}` tuple is guaranteed to properly and uniquely identify
 a node in the graph even when code around it changes.
 
-```
+```erl
 -record(glass_entity, {
   id :: term(),
   properties :: #{ atom() => term() },
@@ -83,7 +83,7 @@ a node in the graph even when code around it changes.
 
 A workspace is, then, a bag of such entities along with the indexes defined for them.
 
-```
+```erl
 -record(workspace, {
   id :: atom(),
   properties :: #{ atom() => term() },
@@ -107,7 +107,7 @@ looks like this, but I'm only interested in certain contexts/situations". For
 example, should one be interested in calls to a logging function on a particular
 file, a query could look like the following:
 
-```
+```erl
 log(some_file, Message, Args)
 ```
 
@@ -120,7 +120,7 @@ The use of unification allows programmers to express some common scenarios
 concisely. For example, finding all cases of the identity function in an
 Erlang codebase could be done through the query:
 
-```
+```erl
 fun(X) -> X end
 ```
 
@@ -133,7 +133,7 @@ expression can make use of any variable bound during unification. So, if one
 would like to have all functions converting a number to a string, they could
 write a query like this (assuming that something would provide type information):
 
-```
+```erl
 fun(In) -> Out end
   when has_type(In, integer)
   and  has_type(Out, string)
@@ -143,7 +143,7 @@ Of course, the shape of these queries and the available predicates and relations
 in a constraint depend on the language and the parser. In a Python codebase,
 these could, instead, look like this:
 
-```
+```py
 lambda input: output
 if input :: integer and output :: string
 ```
